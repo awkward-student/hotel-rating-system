@@ -4,6 +4,7 @@ import com.user.service.entities.Hotel;
 import com.user.service.entities.Rating;
 import com.user.service.entities.User;
 import com.user.service.exceptions.ResourceNotFoundException;
+import com.user.service.external.services.HotelService;
 import com.user.service.repositories.UserRepo;
 import com.user.service.services.UserService;
 import org.apache.juli.logging.LogFactory;
@@ -29,6 +30,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private RestTemplate restTemplate;
 
+    @Autowired
+    private HotelService hotelService;
+
     // for testing the fetch logger is used
     // private final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
@@ -50,13 +54,15 @@ public class UserServiceImpl implements UserService {
         // fetching user from db with user repo
         User user =  userRepo.findById(userId).orElseThrow(()-> new ResourceNotFoundException("User not found with id: "+userId));
         // fetching ratings given by user from Rating Service
-        Rating[] ratingsOfUser = restTemplate.getForObject("http://RATING_SERVICE/ratings/users/"+userId, Rating[].class);
+        Rating[] ratingsOfUser = restTemplate.getForObject("http://RATING-SERVICE/ratings/users/"+userId, Rating[].class);
         List<Rating> ratings = Arrays.stream(ratingsOfUser).toList();
         // logger.info("{} ", ratings);
         List<Rating> ratingList = ratings.stream().map(rating -> {
             // API call to hotel service to get hotel details
-            ResponseEntity<Hotel> forEntity = restTemplate.getForEntity("http://HOTEL_SERVICE/hotels/"+rating.getHotelId(), Hotel.class);
-            Hotel hotel = forEntity.getBody();
+            // disabling restTemplate and enabling feignClient
+            // ResponseEntity<Hotel> forEntity = restTemplate.getForEntity("http://HOTEL-SERVICE/hotels/"+rating.getHotelId(), Hotel.class);
+            // Hotel hotel = forEntity.getBody();
+            Hotel hotel = hotelService.getHotel(rating.getHotelId());
             // setting hotel to rating
             rating.setHotel(hotel);
             // return rating containing hotel details
