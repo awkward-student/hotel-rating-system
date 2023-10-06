@@ -16,12 +16,51 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
   application:
     name: USER-SERVICE
+  config:
+    import: optional:configserver:http://localhost:8085
 
-eureka:
-  instances:
-    prefer-ip-address: true
-  client:
-    fetch-registry: true
-    register-with-eureka: true
-    service-url:
-      defaultZone: http://localhost:8761/eureka
+#eureka:
+#  instances:
+#    prefer-ip-address: true
+#  client:
+#    fetch-registry: true
+#    register-with-eureka: true
+#    service-url:
+#      defaultZone: http://localhost:8761/eureka
+
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+  endpoints:
+     web:
+       exposure:
+         include: health
+  endpoint:
+    health:
+      show-details: always
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      ratingAndHotelBreaker:
+        registerHealthIndicator: true
+        eventConsumerBufferSize: 10
+        failureRateThreshold: 50
+        minimumNumberOfCalls: 5
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 6s
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowSize: 10
+        slidingWindowType: COUNT_BASED
+  retry:
+    instances:
+      ratingAndHotelRetry:
+        max-attempts: 3
+        wait-duration: 2s
+  ratelimiter:
+    instances:
+      userRateLimiter:
+        limit-refresh-period: 3s
+        limit-for-period: 3
+        timeout-duration: 0s
